@@ -1,0 +1,315 @@
+library(mnormt)
+#sample size
+nn = 1:2
+all.n = c(50,200)
+#beta size
+np = 1
+all.p = c(20)
+#beta covariance
+nS = 2
+S2 = function(p){Sig = diag(p)
+for(r in 1:p){
+for(c in 1:p){
+Sig[r,c] = (0.6)^(abs(r-c))}}
+return(Sig)}
+#beta values
+nB = 1
+# set values for 16 different datasets
+for(i in nn){
+n = all.n[i]
+for(j in np){
+p = all.p[j]
+for(k in nS){
+if(k==1){S = diag(1,p)
+}else{S = S2(p)}
+for(l in nB){
+if(l==1){
+B = rep(0,p)
+B[1:5] = 3
+}else{
+B = rep(0,p)
+B[1:5]=5
+B[6:10]=-2
+B[11:15]=0.5}
+#generate data
+dat <- NULL
+dat$n = n
+dat$p = p
+dat$B = B
+dat$S = S
+dat$X = rmnorm(n,rep(0,p),S)
+dat$y = rnorm(n,dat$X%*%dat$B,1)
+setwd("~/Google Drive/year 3/268/homework 2")
+name = sprintf("dat_n%s_p%s_S%s_B%s.Rda",n,p,k,l)
+save(dat,file=name)
+}
+}
+}
+}
+for(i in nn){
+n = all.n[i]
+load(sprintf("dat_n%s_p20_S2_B1.Rda",n))
+}
+n = 500
+p = 100
+X = matrix(rnorm(n*p,0,1),n,p)
+dim(X)
+y = 10*sin(pi*X[,1]*X[,2])+20*(X[,2]-0.5)^2 + 10*X[,4] + rnorm(n,0,0.5)
+dim(y)
+length(y)
+dim(X[,1])
+length(X[,1])
+n = 200
+p = 200
+X = matrix(rnorm(n*p,0,1),n,p)
+y = 10*sin(pi*X[,1]*X[,2])+20*(X[,2]-0.5)^2 + 10*X[,4] + rnorm(n,0,0.5)
+name = sprintf("dat2i_n%s_p%s.Rda",n,p)
+save(dat,file=name)
+X = X[,c(1,2,9)]+ rnorm(n*3,0,0.1)
+n = 200
+p = 200
+X = matrix(rnorm(n*p,0,1),n,p)
+y = 10*sin(pi*X[,1]*X[,2])+20*(X[,2]-0.5)^2 + 10*X[,4] + rnorm(n,0,0.5)
+name = sprintf("dat2i_n%s_p%s.Rda",n,p)
+save(dat,file=name)
+X = X[,c(1,2,9)] + matrix(rnorm(n*3,0,0.1),n,3)
+name = sprintf("dat2i_noise_n%s_p%s.Rda",n,p)
+save(dat,file=name)
+#(ii)
+n = 500
+p = 100
+X = matrix(rnorm(n*p,0,1),n,p)
+y = 10*sin(pi*X[,1]*X[,2])+20*(X[,2]-0.5)^2 + 10*X[,4] + rnorm(n,0,0.5)
+name = sprintf("dat2ii_n%s_p%s.Rda",n,p)
+save(dat,file=name)
+X = X[,c(1,2,9)] + matrix(rnorm(n*3,0,0.1),n,3)
+name = sprintf("dat2ii_noise_n%s_p%s.Rda",n,p)
+save(dat,file=name)
+n = 200
+p = 200
+k = 100
+X = matrix(rnorm((n+k)*p,0,1),(n+k),p)
+y = 10*sin(pi*X[,1]*X[,2])+20*(X[,2]-0.5)^2 + 10*X[,4] + rnorm((n+k),0,0.5)
+dat$n = n
+dat$p = p
+dat$X.test = X[(n+1):(n+k),]
+dat$X = X[1:n,]
+dat$y.test = y[(n+1):(n+k)]
+dat$y = y[1:n]
+name = sprintf("dat2i_n%s_p%s.Rda",n,p)
+save(dat,file=name)
+X = X[,c(1,2,9)] + matrix(rnorm((n+k)*3,0,0.1),(n+k),3)
+dat$X.test = X[(n+1):(n+k),]
+dat$X = X[1:n,]
+name = sprintf("dat2i_noise_n%s_p%s.Rda",n,p)
+save(dat,file=name)
+n = 500
+p = 100
+k = 100
+X = matrix(rnorm((n+k)*p,0,1),(n+k),p)
+y = 10*sin(pi*X[,1]*X[,2])+20*(X[,2]-0.5)^2 + 10*X[,4] + rnorm((n+k),0,0.5)
+dat$n = n
+dat$p = p
+dat$X.test = X[(n+1):(n+k),]
+dat$X = X[1:n,]
+dat$y.test = y[(n+1):(n+k)]
+dat$y = y[1:n]
+name = sprintf("dat2ii_n%s_p%s.Rda",n,p)
+save(dat,file=name)
+X = X[,c(1,2,9)] + matrix(rnorm((n+k)*3,0,0.1),(n+k),3)
+dat$X.test = X[(n+1):(n+k),]
+dat$X = X[1:n,]
+name = sprintf("dat2ii_noise_n%s_p%s.Rda",n,p)
+save(dat,file=name)
+load(sprintf("dat2ii_n%s_p%s.Rda",n,p))
+n = 500
+p = 100
+load(sprintf("dat2ii_n%s_p%s.Rda",n,p))
+dat$n
+dat$p
+dat$S <- NULL
+dat$S <- NULL
+dim(dat$X)
+dim(dat$y)
+length(dat$y)
+length(dat$y.test)
+dim(dat$X.test)
+source('~/Google Drive/year 3/268/homework 1/spikeandslab.R')
+par(mar=c(4,4,1,1))
+plot(dat$B,col="red",pch=19,xlab="predictor index",ylab="coefficents",cex.axis=1,cex.lab=1,ylim=c(-0.2,3.2),xlim=c(-0.2,20.2))
+arrows(1:50, lb.beta, 1:50,  ub.beta, length=0.01, angle=90, code=3, lwd=2, col="grey")
+points(1:50, p.mean.beta, pch=19, lwd=1, col="black", cex=.5)
+#polygon(c(1:p, rev(1:p)), c(ub.beta, rev(lb.beta) ),col="grey", border = NA)
+points(p.mean.beta,col="red",pch=19)
+legend("topright",legend = c(sprintf("n=%s",n),sprintf("MSE=%s",round(MSE,3))),cex=0.8,inset=0.04,box.lty=0)
+}
+gp = spikeandslab(dat$y,dat$X)
+#save needed values for next parts E(beta|y), MSE
+ub.beta = apply(gp$ps.beta,1,function(x) quantile(x,0.975))
+lb.beta = apply(gp$ps.beta,1,function(x) quantile(x,0.025))
+p.mean.beta = rowMeans(gp$ps.beta)
+include.zero.indicator = as.numeric(lb.beta <= 0 && ub.beta >= 0)
+MSE = mean( (dat$B-p.mean.beta)^2 )
+par(mar=c(4,4,1,1))
+plot(dat$B,col="red",pch=19,xlab="predictor index",ylab="coefficents",cex.axis=1,cex.lab=1,ylim=c(-0.2,3.2),xlim=c(-0.2,20.2))
+arrows(1:50, lb.beta, 1:50,  ub.beta, length=0.01, angle=90, code=3, lwd=2, col="grey")
+points(1:50, p.mean.beta, pch=19, lwd=1, col="black", cex=.5)
+#polygon(c(1:p, rev(1:p)), c(ub.beta, rev(lb.beta) ),col="grey", border = NA)
+points(p.mean.beta,col="red",pch=19)
+legend("topright",legend = c(sprintf("n=%s",n),spri
+)
+rep("grey",p)
+rep("grey",p) + c("blue")*c(1,2)
+rep("grey",p)[!include.zero.indicator] + rep("blue")[include.zero.indicator]
+include.zero.indicator
+include.zero.indicator = rep(c(1,0),p/2)
+include.zero.indicator
+rep("grey",p)[!include.zero.indicator] + rep("blue")[include.zero.indicator]
+rep("grey",p)[!include.zero.indicator]
+interval.cols = rep("grey",p)
+interval.cols[include.zero.indicator] = "blue"
+interval.cols
+interval.cols[which(include.zero.indicator==1)] = "blue"
+interval.cols
+i = 1
+n = all.n[i]
+p = 20
+setwd("~/Google Drive/year 3/268/homework 2")
+load(sprintf("dat_n%s_p20_S2_B1.Rda",n))
+gp = spikeandslab(dat$y,dat$X)
+#save needed values for next parts E(beta|y), MSE
+ub.beta = apply(gp$ps.beta,1,function(x) quantile(x,0.975))
+lb.beta = apply(gp$ps.beta,1,function(x) quantile(x,0.025))
+p.mean.beta = rowMeans(gp$ps.beta)
+include.zero.indicator = as.numeric(lb.beta <= 0 && ub.beta >= 0)
+interval.cols = rep("grey",p)
+interval.cols[which(include.zero.indicator==1)] = "light blue"
+MSE = mean( (dat$B-p.mean.beta)^2 )
+par(mar=c(4,4,1,1))
+plot(dat$B,col="red",pch=19,xlab="predictor index",ylab="coefficents",cex.axis=1,cex.lab=1,ylim=c(-0.5,3.5),xlim=c(-0.2,20.2))
+arrows(1:p, lb.beta, 1:p,  ub.beta, length=0.01, angle=90, code=3, lwd=2, col=interval.cols)
+points(1:p, p.mean.beta, pch=19, lwd=1, col="black", cex=.5)
+#polygon(c(1:p, rev(1:p)), c(ub.beta, rev(lb.beta) ),col="grey", border = NA)
+points(dat$B,col="red",pch=19,lwd=1,cex=.5)
+legend("topright",legend = c(sprintf("n=%s",n),sprintf("MSE=%s",round(MSE,3))),cex=0.8,inset=0.04,box.lty=0)
+}
+source('~/Google Drive/year 3/268/homework 1/spikeandslab.R')
+source('~/Google Drive/year 3/268/homework 2/gprior_regression.R')
+all.n = c(50,200)
+par(mfrow=c(2,2))
+# load datasets
+for(i in nn){
+n = all.n[i]
+p = 20
+setwd("~/Google Drive/year 3/268/homework 2")
+load(sprintf("dat_n%s_p20_S2_B1.Rda",n))
+gp = spikeandslab(dat$y,dat$X)
+#save needed values for next parts E(beta|y), MSE
+ub.beta = apply(gp$ps.beta,1,function(x) quantile(x,0.975))
+lb.beta = apply(gp$ps.beta,1,function(x) quantile(x,0.025))
+p.mean.beta = rowMeans(gp$ps.beta)
+include.zero.indicator = as.numeric(lb.beta <= 0 && ub.beta >= 0)
+interval.cols = rep("grey",p)
+interval.cols[which(include.zero.indicator==1)] = "light blue"
+MSE = mean( (dat$B-p.mean.beta)^2 )
+par(mar=c(4,4,1,1))
+plot(dat$B,col="red",pch=19,xlab="predictor index",ylab="coefficents",cex.axis=1,cex.lab=1,ylim=c(-0.5,3.5),xlim=c(-0.2,20.2))
+arrows(1:p, lb.beta, 1:p,  ub.beta, length=0.01, angle=90, code=3, lwd=2, col=interval.cols)
+points(1:p, p.mean.beta, pch=19, lwd=1, col="black", cex=.5)
+#polygon(c(1:p, rev(1:p)), c(ub.beta, rev(lb.beta) ),col="grey", border = NA)
+points(dat$B,col="red",pch=19,lwd=1,cex=.5)
+legend("topright",legend = c(sprintf("n=%s",n),sprintf("MSE=%s",round(MSE,3))),cex=0.8,inset=0.04,box.lty=0)
+}
+nn = 1:2
+par(mfrow=c(2,2))
+# load datasets
+for(i in nn){
+n = all.n[i]
+p = 20
+setwd("~/Google Drive/year 3/268/homework 2")
+load(sprintf("dat_n%s_p20_S2_B1.Rda",n))
+gp = spikeandslab(dat$y,dat$X)
+#save needed values for next parts E(beta|y), MSE
+ub.beta = apply(gp$ps.beta,1,function(x) quantile(x,0.975))
+lb.beta = apply(gp$ps.beta,1,function(x) quantile(x,0.025))
+p.mean.beta = rowMeans(gp$ps.beta)
+include.zero.indicator = as.numeric(lb.beta <= 0 && ub.beta >= 0)
+interval.cols = rep("grey",p)
+interval.cols[which(include.zero.indicator==1)] = "light blue"
+MSE = mean( (dat$B-p.mean.beta)^2 )
+par(mar=c(4,4,1,1))
+plot(dat$B,col="red",pch=19,xlab="predictor index",ylab="coefficents",cex.axis=1,cex.lab=1,ylim=c(-0.5,3.5),xlim=c(-0.2,20.2))
+arrows(1:p, lb.beta, 1:p,  ub.beta, length=0.01, angle=90, code=3, lwd=2, col=interval.cols)
+points(1:p, p.mean.beta, pch=19, lwd=1, col="black", cex=.5)
+#polygon(c(1:p, rev(1:p)), c(ub.beta, rev(lb.beta) ),col="grey", border = NA)
+points(dat$B,col="red",pch=19,lwd=1,cex=.5)
+legend("topright",legend = c(sprintf("n=%s",n),sprintf("MSE=%s",round(MSE,3))),cex=0.8,inset=0.04,box.lty=0)
+}
+include.zero.indicator
+include.zero.indicator = as.numeric(lb.beta <= 0)*as.numeric(ub.beta >= 0)
+interval.cols = rep("grey",p)
+interval.cols[which(include.zero.indicator==1)] = "light blue"
+MSE = mean( (dat$B-p.mean.beta)^2 )
+par(mar=c(4,4,1,1))
+plot(dat$B,col="red",pch=19,xlab="predictor index",ylab="coefficents",cex.axis=1,cex.lab=1,ylim=c(-0.5,3.5),xlim=c(-0.2,20.2))
+arrows(1:p, lb.beta, 1:p,  ub.beta, length=0.01, angle=90, code=3, lwd=2, col=interval.cols)
+points(1:p, p.mean.beta, pch=19, lwd=1, col="black", cex=.5)
+#polygon(c(1:p, rev(1:p)), c(ub.beta, rev(lb.beta) ),col="grey", border = NA)
+points(dat$B,col="red",pch=19,lwd=1,cex=.5)
+legend("topright",legend = c(sprintf("n=%s",n),sprintf("MSE=%s",round(MSE,3))),cex=0.8,inset=0.04,box.lty=0)
+}
+install.packages("randomForest")
+install.packages("BayesTree")
+library(randomForest)
+library(BayesTree)
+n = 200
+p = 200
+load(sprintf("dat2i_n%s_p%s.Rda",n,p))
+df = data.frams(dat$y,dat$X)
+CRForest <- randomForest(dat$y~.,data=df,mtry=max(floor(ncol(dat$X)/3),1),ntree=10)
+Cpredicted.test <- predict(CRForest,data.frame(dat$X.test),type="response",norm.votes=TRUE,predict.all=FALSE, proximity=FALSE,nodes=FALSE)
+Cpredicted.train <- predict(CRForest,data.frame(dat$X),type="response",norm.votes=TRUE,predict.all=FALSE, proximity=FALSE,nodes=FALSE)
+MSPE.out = mean((as.numeric(Cpredicted.test)-dat$y.test)^2)
+MSPE.in = mean((as.numeric(Cpredicted.train)-dat$y)^2)
+df = data.frame(dat$y,dat$X)
+CRForest <- randomForest(dat$y~.,data=df,mtry=max(floor(ncol(dat$X)/3),1),ntree=10)
+Cpredicted.test <- predict(CRForest,data.frame(dat$X.test),type="response",norm.votes=TRUE,predict.all=FALSE, proximity=FALSE,nodes=FALSE)
+Cpredicted.train <- predict(CRForest,data.frame(dat$X),type="response",norm.votes=TRUE,predict.all=FALSE, proximity=FALSE,nodes=FALSE)
+MSPE.out = mean((as.numeric(Cpredicted.test)-dat$y.test)^2)
+MSPE.in = mean((as.numeric(Cpredicted.train)-dat$y)^2)
+df = data.frame(dat$y,dat$X)
+CRForest <- randomForest(dat$y~,data=df,mtry=max(floor(ncol(dat$X)/3),1),ntree=10)
+df = data.frame(dat$y,dat$X)
+CRForest <- randomForest(dat$y~.,data=df,mtry=max(floor(ncol(dat$X)/3),1),ntree=10)
+Cpredicted.test <- predict(CRForest,data.frame(dat$X.test),type="response",norm.votes=TRUE,predict.all=FALSE, proximity=FALSE,nodes=FALSE)
+Cpredicted.train <- predict(CRForest,data.frame(dat$X),type="response",norm.votes=TRUE,predict.all=FALSE, proximity=FALSE,nodes=FALSE)
+Cpredicted.test <- predict(CRForest,data.frame(dat$y.test,dat$X.test),type="response",norm.votes=TRUE,predict.all=FALSE, proximity=FALSE,nodes=FALSE)
+help("randomForest")
+Cpredicted.test <- predict.randomForest(CRForest,data.frame(dat$X.test),type="response",norm.votes=TRUE,predict.all=FALSE, proximity=FALSE,nodes=FALSE)
+df = data.frame(dat$y,dat$X)
+names(df) <- make.names(names(df))
+CRForest <- randomForest(dat$y~.,data=df,mtry=max(floor(ncol(dat$X)/3),1),ntree=10)
+Cpredicted.test <- predict.randomForest(CRForest,data.frame(dat$X.test),type="response",norm.votes=TRUE,predict.all=FALSE, proximity=FALSE,nodes=FALSE)
+Cpredicted.train <- predict(CRForest,data.frame(dat$X),type="response",norm.votes=TRUE,predict.all=FALSE, proximity=FALSE,nodes=FALSE)
+MSPE.out = mean((as.numeric(Cpredicted.test)-dat$y.test)^2)
+MSPE.in = mean((as.numeric(Cpredicted.train)-dat$y)^2)
+df = data.frame(dat$y,dat$X)
+names(df) <- make.names(names(df))
+CRForest <- randomForest(dat$y~.,data=df,mtry=max(floor(ncol(dat$X)/3),1),ntree=10)
+Cpredicted.test <- predict(CRForest,data.frame(dat$X.test),type="response",norm.votes=TRUE,predict.all=FALSE, proximity=FALSE,nodes=FALSE)
+Cpredicted.train <- predict(CRForest,data.frame(dat$X),type="response",norm.votes=TRUE,predict.all=FALSE, proximity=FALSE,nodes=FALSE)
+MSPE.out = mean((as.numeric(Cpredicted.test)-dat$y.test)^2)
+MSPE.in = mean((as.numeric(Cpredicted.train)-dat$y)^2)
+y = dat$y
+X = dat$X
+df = data.frame(y,X)
+names(df) <- make.names(names(df))
+CRForest <- randomForest(dat$y~.,data=df,mtry=max(floor(ncol(dat$X)/3),1),ntree=10)
+Cpredicted.test <- predict(CRForest,data.frame(dat$X.test),type="response",norm.votes=TRUE,predict.all=FALSE, proximity=FALSE,nodes=FALSE)
+Cpredicted.train <- predict(CRForest,data.frame(dat$X),type="response",norm.votes=TRUE,predict.all=FALSE, proximity=FALSE,nodes=FALSE)
+MSPE.out = mean((as.numeric(Cpredicted.test)-dat$y.test)^2)
+MSPE.in = mean((as.numeric(Cpredicted.train)-dat$y)^2)
+MSPE.in
+MSPE.out
+hist(y)
+names(CRForest)

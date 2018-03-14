@@ -1,0 +1,389 @@
+---
+title: "AMS 268 - Homework #3"
+author: "Raquel Barata"
+date: "3/12/2018"
+output: beamer_presentation
+---
+
+```{r, include=FALSE, echo=FALSE}
+library("spBayes")
+library("plotly")
+library("fields")
+library("mvtnorm")
+setwd("~/Google Drive/year 3/268/homework 3")
+load("hw3_sim_data.Rda")
+load("mod_GP_m_1.Rda")
+load("mod_GP_insample.preds.Rda")
+load("mod_GP_surface.preds.Rda")
+```
+
+## Data
+
+![](~/Google Drive/year 3/268/homework 3/hw3_data.png)
+
+## Priors
+- flat prior on beta
+- uniform$(0.5,4.5)$ prior for $\phi$
+- inverse gamma priors on both $\tau^2$ and $\sigma^2$
+
+## Modified Predictive Process
+
+- posterior samples, true values marked in red
+
+```{r, echo=FALSE}
+
+par(mfrow=c(2,2))
+par(mar=c(4,4,1,1))
+hist(m.1$p.beta.samples,main="beta samples",ylab="",xlab="")
+abline(v=1,col="red",lwd=2)
+hist(m.1$p.theta.samples[,1],main="sig2 samples",ylab="",xlab="")
+abline(v=1,col="red",lwd=2)
+hist(m.1$p.theta.samples[,2],main="tau2 samples",ylab="",xlab="")
+abline(v=0.1,col="red",lwd=2)
+hist(m.1$p.theta.samples[,3],main="phi samples",ylab="",xlab="")
+abline(v=1,col="red",lwd=2)
+
+```
+
+
+## Modified Predictive Process
+
+- in-sample $MSPE = `r round(mean((sim_data$y - apply(insample.preds,1,mean))),6)`$
+
+```{r, echo=FALSE}
+post.means = apply(surface.preds,1,mean)
+post.vars = apply(surface.preds,1,var)
+pred.coords = expand.grid(lon=seq(0,1,0.1),lat=seq(0,1,0.1))
+par(mfrow=c(1,2))
+par(mar=c(4,4,1,1))
+image.plot(matrix(post.means,length(unique(pred.coords[,1])),length(unique(pred.coords[,2])),byrow=FALSE),
+           x=unique(pred.coords[,1]),y=unique(pred.coords[,2]),horizontal=FALSE,
+           xlab="",ylab="",main ="predicted surface")
+image.plot(matrix(post.vars,length(unique(pred.coords[,1])),length(unique(pred.coords[,2])),byrow=FALSE),
+           x=unique(pred.coords[,1]),y=unique(pred.coords[,2]),horizontal=FALSE,
+           xlab="",ylab="",main ="var of predicted surface")
+```
+
+## Tapered GP - $\nu = \sqrt{2}$
+
+```{r, echo=FALSE}
+nu = sqrt(2)
+load("taper_GP_nu_1.41.Rda")
+
+par(mfrow=c(2,2))
+par(mar=c(4,4,1,1))
+hist(dat$save_MCMC$beta,main="beta samples",ylab="",xlab="")
+abline(v=1,col="red",lwd=2)
+hist(dat$save_MCMC$sig2,main="sig2 samples",ylab="",xlab="")
+abline(v=1,col="red",lwd=2)
+hist(dat$save_MCMC$tau2,main="tau2 samples",ylab="",xlab="")
+abline(v=0.1,col="red",lwd=2)
+hist(dat$save_MCMC$phi,main="phi samples",ylab="",xlab="")
+abline(v=1,col="red",lwd=2)
+
+y = sim_data$y
+x = sim_data$s
+n = length(y)
+
+D21 = as.matrix(dist(x[,1]))^2
+D22 = as.matrix(dist(x[,2]))^2
+dist = sqrt(D21 + D22) ; D21 = NA ; D22 = NA 
+
+taper.C.fn = function(nu){
+C = matrix(0,2000,2000)
+C[which(dist<nu)] = ( (1-dist[which(dist<nu)]/nu)^4 )*(1+4*dist[which(dist<nu)]/nu) 
+return(C) }
+
+taper.C = taper.C.fn(sqrt(2))
+
+exp.C.fn = function(phi){ exp( -phi*dist )}
+
+H.fn = function(phi){ exp.C.fn(phi)*taper.C } 
+
+insample.preds = matrix(NA,2000,500)
+for(i in 1:500){
+  insample.preds[,i] = rmvnorm(1,rep(dat$save_MCMC$beta[i],2000),
+                               (diag(dat$save_MCMC$tau2[i],2000)+dat$save_MCMC$sig2[i]*H.fn(dat$save_MCMC$phi[i])))
+}
+
+```
+- in-sample $MSPE = `r round(mean((sim_data$y - apply(insample.preds,1,mean))),6)`$
+
+<!-- ```{r, echo=FALSE} -->
+<!-- pred.coords = expand.grid(lon=seq(0,1,0.1),lat=seq(0,1,0.1)) -->
+<!-- D21 = as.matrix(dist(pred.coords[,1]))^2 -->
+<!-- D22 = as.matrix(dist(pred.coords[,2]))^2 -->
+<!-- dist = sqrt(D21 + D22) ; D21 = NA ; D22 = NA  -->
+
+<!-- taper.C.fn = function(nu){ -->
+<!-- C = matrix(0,dim(dist)[1],dim(dist)[2]) -->
+<!-- C[which(dist<nu)] = ( (1-dist[which(dist<nu)]/nu)^4 )*(1+4*dist[which(dist<nu)]/nu)  -->
+<!-- return(C) } -->
+
+<!-- taper.C = taper.C.fn(nu) -->
+
+<!-- exp.C.fn = function(phi){ exp( -phi*dist )} -->
+
+<!-- H.fn = function(phi){ exp.C.fn(phi)*taper.C }  -->
+
+<!-- surface.preds = matrix(NA,dim(pred.coords)[1],500) -->
+<!-- for(i in 1:500){ -->
+<!--   surface.preds[,i] = rmvnorm(1,rep(dat$save_MCMC$beta[i],dim(dist)[1]), -->
+<!--                                (diag(dat$save_MCMC$tau2[i],dim(dist)[1])+dat$save_MCMC$sig2[i]*H.fn(dat$save_MCMC$phi[i]))) -->
+<!-- } -->
+
+<!-- post.means = apply(surface.preds,1,median) -->
+<!-- post.vars = apply(surface.preds,1,sd) -->
+<!-- pred.coords = expand.grid(lon=seq(0,1,0.1),lat=seq(0,1,0.1)) -->
+<!-- par(mfrow=c(1,2)) -->
+<!-- par(mar=c(4,4,1,1)) -->
+<!-- image.plot(matrix(post.means,length(unique(pred.coords[,1])),length(unique(pred.coords[,2])),byrow=FALSE), -->
+<!--            x=unique(pred.coords[,1]),y=unique(pred.coords[,2]),horizontal=FALSE, -->
+<!--            xlab="",ylab="",main ="predicted surface") -->
+<!-- image.plot(matrix(post.vars,length(unique(pred.coords[,1])),length(unique(pred.coords[,2])),byrow=FALSE), -->
+<!--            x=unique(pred.coords[,1]),y=unique(pred.coords[,2]),horizontal=FALSE, -->
+<!--            xlab="",ylab="",main ="var of predicted surface") -->
+<!-- ``` -->
+
+## Tapered GP - $\nu = 1$
+
+```{r, echo=FALSE}
+nu = 1
+load("taper_GP_nu_1.Rda")
+
+par(mfrow=c(2,2))
+par(mar=c(4,4,1,1))
+hist(dat$save_MCMC$beta,main="beta samples",ylab="",xlab="")
+abline(v=1,col="red",lwd=2)
+hist(dat$save_MCMC$sig2,main="sig2 samples",ylab="",xlab="")
+abline(v=1,col="red",lwd=2)
+hist(dat$save_MCMC$tau2,main="tau2 samples",ylab="",xlab="")
+abline(v=0.1,col="red",lwd=2)
+hist(dat$save_MCMC$phi,main="phi samples",ylab="",xlab="")
+abline(v=1,col="red",lwd=2)
+
+y = sim_data$y
+x = sim_data$s
+n = length(y)
+
+D21 = as.matrix(dist(x[,1]))^2
+D22 = as.matrix(dist(x[,2]))^2
+dist = sqrt(D21 + D22) ; D21 = NA ; D22 = NA 
+
+taper.C.fn = function(nu){
+C = matrix(0,2000,2000)
+C[which(dist<nu)] = ( (1-dist[which(dist<nu)]/nu)^4 )*(1+4*dist[which(dist<nu)]/nu) 
+return(C) }
+
+taper.C = taper.C.fn(sqrt(2))
+
+exp.C.fn = function(phi){ exp( -phi*dist )}
+
+H.fn = function(phi){ exp.C.fn(phi)*taper.C } 
+
+insample.preds = matrix(NA,2000,500)
+for(i in 1:500){
+  insample.preds[,i] = rmvnorm(1,rep(dat$save_MCMC$beta[i],2000),
+                               (diag(dat$save_MCMC$tau2[i],2000)+dat$save_MCMC$sig2[i]*H.fn(dat$save_MCMC$phi[i])))
+}
+
+```
+- in-sample $MSPE = `r round(mean((sim_data$y - apply(insample.preds,1,mean))),6)`$
+
+<!-- ```{r, echo=FALSE} -->
+<!-- pred.coords = expand.grid(lon=seq(0,1,0.1),lat=seq(0,1,0.1)) -->
+<!-- D21 = as.matrix(dist(pred.coords[,1]))^2 -->
+<!-- D22 = as.matrix(dist(pred.coords[,2]))^2 -->
+<!-- dist = sqrt(D21 + D22) ; D21 = NA ; D22 = NA  -->
+
+<!-- taper.C.fn = function(nu){ -->
+<!-- C = matrix(0,dim(dist)[1],dim(dist)[2]) -->
+<!-- C[which(dist<nu)] = ( (1-dist[which(dist<nu)]/nu)^4 )*(1+4*dist[which(dist<nu)]/nu)  -->
+<!-- return(C) } -->
+
+<!-- taper.C = taper.C.fn(nu) -->
+
+<!-- exp.C.fn = function(phi){ exp( -phi*dist )} -->
+
+<!-- H.fn = function(phi){ exp.C.fn(phi)*taper.C }  -->
+
+<!-- surface.preds = matrix(NA,dim(pred.coords)[1],500) -->
+<!-- for(i in 1:500){ -->
+<!--   surface.preds[,i] = rmvnorm(1,rep(dat$save_MCMC$beta[i],dim(dist)[1]), -->
+<!--                                (diag(dat$save_MCMC$tau2[i],dim(dist)[1])+dat$save_MCMC$sig2[i]*H.fn(dat$save_MCMC$phi[i]))) -->
+<!-- } -->
+
+<!-- post.means = apply(surface.preds,1,mean) -->
+<!-- post.vars = apply(surface.preds,1,var) -->
+<!-- pred.coords = expand.grid(lon=seq(0,1,0.1),lat=seq(0,1,0.1)) -->
+<!-- par(mfrow=c(1,2)) -->
+<!-- par(mar=c(4,4,1,1)) -->
+<!-- image.plot(matrix(post.means,length(unique(pred.coords[,1])),length(unique(pred.coords[,2])),byrow=FALSE), -->
+<!--            x=unique(pred.coords[,1]),y=unique(pred.coords[,2]),horizontal=FALSE, -->
+<!--            xlab="",ylab="",main ="predicted surface") -->
+<!-- image.plot(matrix(post.vars,length(unique(pred.coords[,1])),length(unique(pred.coords[,2])),byrow=FALSE), -->
+<!--            x=unique(pred.coords[,1]),y=unique(pred.coords[,2]),horizontal=FALSE, -->
+<!--            xlab="",ylab="",main ="var of predicted surface") -->
+<!-- ``` -->
+
+## Tapered GP - $\nu = 0.2$
+
+```{r, echo=FALSE}
+nu = 0.2
+load("taper_GP_nu_0.2.Rda")
+
+par(mfrow=c(2,2))
+par(mar=c(4,4,1,1))
+hist(dat$save_MCMC$beta,main="beta samples",ylab="",xlab="")
+abline(v=1,col="red",lwd=2)
+hist(dat$save_MCMC$sig2,main="sig2 samples",ylab="",xlab="")
+abline(v=1,col="red",lwd=2)
+hist(dat$save_MCMC$tau2,main="tau2 samples",ylab="",xlab="")
+abline(v=0.1,col="red",lwd=2)
+hist(dat$save_MCMC$phi,main="phi samples",ylab="",xlab="")
+abline(v=1,col="red",lwd=2)
+
+y = sim_data$y
+x = sim_data$s
+n = length(y)
+
+D21 = as.matrix(dist(x[,1]))^2
+D22 = as.matrix(dist(x[,2]))^2
+dist = sqrt(D21 + D22) ; D21 = NA ; D22 = NA 
+
+taper.C.fn = function(nu){
+C = matrix(0,2000,2000)
+C[which(dist<nu)] = ( (1-dist[which(dist<nu)]/nu)^4 )*(1+4*dist[which(dist<nu)]/nu) 
+return(C) }
+
+taper.C = taper.C.fn(sqrt(2))
+
+exp.C.fn = function(phi){ exp( -phi*dist )}
+
+H.fn = function(phi){ exp.C.fn(phi)*taper.C } 
+
+insample.preds = matrix(NA,2000,500)
+for(i in 1:500){
+  insample.preds[,i] = rmvnorm(1,rep(dat$save_MCMC$beta[i],2000),
+                               (diag(dat$save_MCMC$tau2[i],2000)+dat$save_MCMC$sig2[i]*H.fn(dat$save_MCMC$phi[i])))
+}
+
+```
+- in-sample $MSPE = `r round(mean((sim_data$y - apply(insample.preds,1,mean))),6)`$
+
+<!-- ```{r, echo=FALSE} -->
+<!-- pred.coords = expand.grid(lon=seq(0,1,0.1),lat=seq(0,1,0.1)) -->
+<!-- D21 = as.matrix(dist(pred.coords[,1]))^2 -->
+<!-- D22 = as.matrix(dist(pred.coords[,2]))^2 -->
+<!-- dist = sqrt(D21 + D22) ; D21 = NA ; D22 = NA  -->
+
+<!-- taper.C.fn = function(nu){ -->
+<!-- C = matrix(0,dim(dist)[1],dim(dist)[2]) -->
+<!-- C[which(dist<nu)] = ( (1-dist[which(dist<nu)]/nu)^4 )*(1+4*dist[which(dist<nu)]/nu)  -->
+<!-- return(C) } -->
+
+<!-- taper.C = taper.C.fn(nu) -->
+
+<!-- exp.C.fn = function(phi){ exp( -phi*dist )} -->
+
+<!-- H.fn = function(phi){ exp.C.fn(phi)*taper.C }  -->
+
+<!-- surface.preds = matrix(NA,dim(pred.coords)[1],500) -->
+<!-- for(i in 1:500){ -->
+<!--   surface.preds[,i] = rmvnorm(1,rep(dat$save_MCMC$beta[i],dim(dist)[1]), -->
+<!--                                (diag(dat$save_MCMC$tau2[i],dim(dist)[1])+dat$save_MCMC$sig2[i]*H.fn(dat$save_MCMC$phi[i]))) -->
+<!-- } -->
+
+<!-- post.means = apply(surface.preds,1,mean) -->
+<!-- post.vars = apply(surface.preds,1,var) -->
+<!-- pred.coords = expand.grid(lon=seq(0,1,0.1),lat=seq(0,1,0.1)) -->
+<!-- par(mfrow=c(1,2)) -->
+<!-- par(mar=c(4,4,1,1)) -->
+<!-- image.plot(matrix(post.means,length(unique(pred.coords[,1])),length(unique(pred.coords[,2])),byrow=FALSE), -->
+<!--            x=unique(pred.coords[,1]),y=unique(pred.coords[,2]),horizontal=FALSE, -->
+<!--            xlab="",ylab="",main ="predicted surface") -->
+<!-- image.plot(matrix(post.vars,length(unique(pred.coords[,1])),length(unique(pred.coords[,2])),byrow=FALSE), -->
+<!--            x=unique(pred.coords[,1]),y=unique(pred.coords[,2]),horizontal=FALSE, -->
+<!--            xlab="",ylab="",main ="var of predicted surface") -->
+<!-- ``` -->
+
+## Tapered GP - $\nu = 0.05$
+
+```{r, echo=FALSE}
+nu = 0.05
+load("taper_GP_nu_0.05.Rda")
+
+par(mfrow=c(2,2))
+par(mar=c(4,4,1,1))
+hist(dat$save_MCMC$beta,main="beta samples",ylab="",xlab="")
+abline(v=1,col="red",lwd=2)
+hist(dat$save_MCMC$sig2,main="sig2 samples",ylab="",xlab="")
+abline(v=1,col="red",lwd=2)
+hist(dat$save_MCMC$tau2,main="tau2 samples",ylab="",xlab="")
+abline(v=0.1,col="red",lwd=2)
+hist(dat$save_MCMC$phi,main="phi samples",ylab="",xlab="")
+abline(v=1,col="red",lwd=2)
+
+y = sim_data$y
+x = sim_data$s
+n = length(y)
+
+D21 = as.matrix(dist(x[,1]))^2
+D22 = as.matrix(dist(x[,2]))^2
+dist = sqrt(D21 + D22) ; D21 = NA ; D22 = NA 
+
+taper.C.fn = function(nu){
+C = matrix(0,2000,2000)
+C[which(dist<nu)] = ( (1-dist[which(dist<nu)]/nu)^4 )*(1+4*dist[which(dist<nu)]/nu) 
+return(C) }
+
+taper.C = taper.C.fn(sqrt(2))
+
+exp.C.fn = function(phi){ exp( -phi*dist )}
+
+H.fn = function(phi){ exp.C.fn(phi)*taper.C } 
+
+insample.preds = matrix(NA,2000,500)
+for(i in 1:500){
+  insample.preds[,i] = rmvnorm(1,rep(dat$save_MCMC$beta[i],2000),
+                               (diag(dat$save_MCMC$tau2[i],2000)+dat$save_MCMC$sig2[i]*H.fn(dat$save_MCMC$phi[i])))
+}
+
+```
+- in-sample $MSPE = `r round(mean((sim_data$y - apply(insample.preds,1,mean))),6)`$
+
+<!-- ```{r, echo=FALSE} -->
+<!-- pred.coords = expand.grid(lon=seq(0,1,0.1),lat=seq(0,1,0.1)) -->
+<!-- D21 = as.matrix(dist(pred.coords[,1]))^2 -->
+<!-- D22 = as.matrix(dist(pred.coords[,2]))^2 -->
+<!-- dist = sqrt(D21 + D22) ; D21 = NA ; D22 = NA  -->
+
+<!-- taper.C.fn = function(nu){ -->
+<!-- C = matrix(0,dim(dist)[1],dim(dist)[2]) -->
+<!-- C[which(dist<nu)] = ( (1-dist[which(dist<nu)]/nu)^4 )*(1+4*dist[which(dist<nu)]/nu)  -->
+<!-- return(C) } -->
+
+<!-- taper.C = taper.C.fn(nu) -->
+
+<!-- exp.C.fn = function(phi){ exp( -phi*dist )} -->
+
+<!-- H.fn = function(phi){ exp.C.fn(phi)*taper.C }  -->
+
+<!-- surface.preds = matrix(NA,dim(pred.coords)[1],500) -->
+<!-- for(i in 1:500){ -->
+<!--   surface.preds[,i] = rmvnorm(1,rep(dat$save_MCMC$beta[i],dim(dist)[1]), -->
+<!--                                (diag(dat$save_MCMC$tau2[i],dim(dist)[1])+dat$save_MCMC$sig2[i]*H.fn(dat$save_MCMC$phi[i]))) -->
+<!-- } -->
+
+<!-- post.means = apply(surface.preds,1,mean) -->
+<!-- post.vars = apply(surface.preds,1,var) -->
+<!-- pred.coords = expand.grid(lon=seq(0,1,0.1),lat=seq(0,1,0.1)) -->
+<!-- par(mfrow=c(1,2)) -->
+<!-- par(mar=c(4,4,1,1)) -->
+<!-- image.plot(matrix(post.means,length(unique(pred.coords[,1])),length(unique(pred.coords[,2])),byrow=FALSE), -->
+<!--            x=unique(pred.coords[,1]),y=unique(pred.coords[,2]),horizontal=FALSE, -->
+<!--            xlab="",ylab="",main ="predicted surface") -->
+<!-- image.plot(matrix(post.vars,length(unique(pred.coords[,1])),length(unique(pred.coords[,2])),byrow=FALSE), -->
+<!--            x=unique(pred.coords[,1]),y=unique(pred.coords[,2]),horizontal=FALSE, -->
+<!--            xlab="",ylab="",main ="var of predicted surface") -->
+<!-- ``` -->

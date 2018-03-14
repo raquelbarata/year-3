@@ -1,0 +1,191 @@
+---
+title: "AMS 268 - HW #1"
+author: "Raquel Barata"
+output: beamer_presentation
+---
+
+```{r, include=FALSE}
+library(mnormt)
+library(glmnet)
+source('~/Google Drive/year 3/268/homework 1/spikeandslab.R')
+#sample size
+nn = 1:2
+all.n = c(500,400)
+#beta size
+np = 1:2
+all.p = c(100,300)
+#beta covariance
+nS = 1:2
+S2 = function(p){Sig = diag(p)
+    for(r in 1:p){
+      for(c in 1:p){
+        Sig[r,c] = (0.6)^(abs(r-c))}}
+    return(Sig)}
+#beta values
+nB = 1:2
+```
+
+# LASSO
+```{r, echo=FALSE}
+par(mfrow=c(4,4))
+# load datasets
+for(i in nn){
+  n = all.n[i]
+
+  for(j in np){
+    p = all.p[j]
+
+    for(k in nS){
+      if(k==1){S.name = "I"
+      }else{S.name = "S_0.6"}
+
+      for(l in nB){
+        if(l ==1){
+          B.name = "(i)"
+        }else{ B.name = "(ii)"}
+
+        setwd("~/Google Drive/year 3/268/homework 1/datasets")
+        load(sprintf("dat_n%s_p%s_S%s_B%s.Rda",n,p,k,l))
+        m.lassoglm <- cv.glmnet(dat$X,dat$y)
+        m.lassoglm1 <- glmnet(dat$X,dat$y,lambda=m.lassoglm$lambda.min,family="gaussian", alpha=1)
+
+        par(mar=c(4,4,1,1))
+        plot(dat$B,col="red",pch=19,xlab="predictor index",ylab="coefficents",cex.axis=1,cex.lab=1,ylim=c(-2.2,5.2),xlim=c(-0.2,300.2))
+        lines(m.lassoglm1$bet)
+        legend("topright",title="model values",legend = c(sprintf("n=%s",n),sprintf("p=%s",p),sprintf("Sig=%s",S.name),sprintf("Beta %s",B.name)),cex=0.8,inset=0.04,box.lty=0)
+        legend("topleft",legend = c(sprintf("MSE=%s",round(mean((dat$B-m.lassoglm1$bet)^2),4))),cex=0.8,inset=0.08,box.lty=0)
+
+      }
+    }
+  }
+}
+```
+
+# Ridge Regression
+```{r, echo=FALSE}
+par(mfrow=c(4,4))
+# load datasets
+for(i in nn){
+  n = all.n[i]
+
+  for(j in np){
+    p = all.p[j]
+
+    for(k in nS){
+      if(k==1){S.name = "I"
+      }else{S.name = "S_0.6"}
+
+      for(l in nB){
+        if(l ==1){
+          B.name = "(i)"
+        }else{ B.name = "(ii)"}
+
+        setwd("~/Google Drive/year 3/268/homework 1/datasets")
+        load(sprintf("dat_n%s_p%s_S%s_B%s.Rda",n,p,k,l))
+        m.lassoglm <- cv.glmnet(dat$X,dat$y)
+        m.lassoglm1 <- glmnet(dat$X,dat$y,lambda=m.lassoglm$lambda.min,family="gaussian", alpha=0)
+
+        par(mar=c(4,4,1,1))
+        plot(dat$B,col="red",pch=19,xlab="predictor index",ylab="coefficents",cex.axis=1,cex.lab=1,ylim=c(-2.2,5.2),xlim=c(-0.2,300.2))
+        lines(m.lassoglm1$bet)
+        legend("topright",title="model values",legend = c(sprintf("n=%s",n),sprintf("p=%s",p),sprintf("Sig=%s",S.name),sprintf("Beta %s",B.name)),cex=0.8,inset=0.04,box.lty=0)
+        legend("topleft",legend = c(sprintf("MSE=%s",round(mean((dat$B-m.lassoglm1$bet)^2),4))),cex=0.8,inset=0.08,box.lty=0)
+
+      }
+    }
+  }
+}
+```
+
+\newpage
+
+# LASSO vs. Ridge Regression
+- True values in red with estimates $\tilde\beta$ in black.
+- $\lambda_j$ chosen to minimize error.
+- MSE = $\frac{1}{p}\sum_{i=1}^{p}(\beta - \tilde\beta)^2$, where $\tilde\beta$ is the estimate for $\beta$, are unanimously smaller when data is fit using LASSO for all 16 combinations.
+- Ridge regression coefficents $\tilde\beta_j$ are farther from true values when $\beta_j = 0$.
+
+# Spike and Slab
+```{r, echo=FALSE}
+par(mfrow=c(4,4))
+# load datasets
+for(i in nn){
+  n = all.n[i]
+
+  for(j in np){
+    p = all.p[j]
+
+    for(k in nS){
+      if(k==1){S.name = "I"
+      }else{S.name = "S_0.6"}
+
+      for(l in nB){
+        if(l ==1){
+          B.name = "(i)"
+        }else{ B.name = "(ii)"}
+
+        setwd("~/Google Drive/year 3/268/homework 1/datasets")
+        load(sprintf("dat_n%s_p%s_S%s_B%s.Rda",n,p,k,l))
+        SnS = spikeandslab(dat$y,dat$X)
+        #save needed values for next parts E(beta|y), MSE, M_zero, M_nonzero
+        ub.beta = apply(SnS$ps.beta,1,function(x) quantile(x,0.975))
+        lb.beta = apply(SnS$ps.beta,1,function(x) quantile(x,0.025))
+        p.mean.beta = rowMeans(SnS$ps.beta)
+        L = ub.beta - lb.beta
+        m_nz = mean(L[which(dat$B!=0)])
+        m_z = mean(L[which(dat$B==0)])
+        MSE = mean( (dat$B-p.mean.beta)^2 )
+
+        par(mar=c(4,4,1,1))
+        plot(dat$B,col="red",pch=19,xlab="predictor index",ylab="coefficents",cex.axis=1,cex.lab=1,ylim=c(-2.2,5.2),xlim=c(-0.2,300.2))
+        polygon(c(1:p, rev(1:p)), c(ub.beta, rev(lb.beta) ),col="grey", border = NA)
+        lines(p.mean.beta,lwd=0.6)
+        legend("topright",title="model values",legend = c(sprintf("n=%s",n),sprintf("p=%s",p),sprintf("Sig=%s",S.name),sprintf("Beta %s",B.name)),cex=0.8,inset=0.04,box.lty=0)
+        legend("topleft",title="measures of fit",legend = c(sprintf("MSE=%s",round(MSE,3)),sprintf("M_nz=%s",round(m_nz,3)),sprintf("M_z=%s",round(m_z,3))),cex=0.8,inset=0.04,box.lty=0)
+
+      }
+    }
+  }
+}
+```
+
+# Spike and Slab
+- True values $\beta_j$ in red, $E(\beta_j|y)$ in black, 95% posterior intervals in grey.
+- Spike and slab code written using the model in the notes with fixed $v_0 = 0.1^2$ and $v_1 = 10^2$.
+- MSE = $\frac{1}{p}\sum_{i=1}^{p}(\beta - E(\beta_j|y))^2$.
+- $M_{nz} = mean(L_j : \beta_j^0 \neq 0)$ and $M_{z} = mean(L_j : \beta_j^0 = 0)$ where $L_j$ is the length of the 95% posterior interval for $\beta_j$.
+- Variable selection is more straight forward for Spike and Slab than LASSO as posterior samples provide marginal inclusion probabilities $Pr(\gamma_j = 1|y,X)$ for coefficient $\beta_j$.
+
+# Posterior Prediction for $n=500$, $p=100$, $\Sigma = S_{0.6}$ and $\beta^{(i)}$
+- 95% posterior predicive intervals for 50 new predictors in grey, $y_{est,i}$ in black, and true values $y_{pred,i}$ in red. 
+- MSPE = $\frac{1}{50}\sum_{i=1}^{50}(y_{pred,i} - y_{est,i})^2$.
+
+```{r, fig.width=7.5, fig.height=5, echo=FALSE}
+setwd("~/Google Drive/year 3/268/homework 1/datasets")
+load("dat_n500_p100_S2_B1.Rda")
+newX = rmnorm(50,rep(0,dat$p),dat$S)
+true.y = rnorm(50,newX%*%dat$B,1)
+
+SnS = spikeandslab(dat$y,dat$X)
+y.pred = newX%*%SnS$ps.beta + SnS$ps.s2
+
+ub.y = apply(y.pred,1,function(x) quantile(x,0.975))
+lb.y = apply(y.pred,1,function(x) quantile(x,0.025))
+p.mean.y = rowMeans(y.pred)
+
+MSPE = mean( (y.pred - p.mean.y)^2 )
+
+par(mfrow=c(2,2))
+par(mar=c(4,4,1,1))
+plot(true.y,col="red",pch=19,xlab="response index",ylab="new responses, y",cex.axis=1,cex.lab=1,xlim=c(-0.2,50.2))
+        arrows(1:50, lb.y, 1:50,  ub.y, length=0.01, angle=90, code=3, lwd=2, col="grey")
+        points(1:50, p.mean.y, pch=19, lwd=1, col="black", cex=.5)
+        #polygon(c(1:50, rev(1:50)), c(ub.y, rev(lb.y) ),col="grey", border = NA)
+        #lines(p.mean.y,lwd=0.6)
+        legend("topright",legend = c(sprintf("MSPE=%s",round(MSPE,3))),cex=0.8,inset=0.04,box.lty=0)
+        #points(true.y,col="red",pch=19)
+
+```
+
+
+
